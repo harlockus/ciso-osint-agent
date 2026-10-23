@@ -3,6 +3,8 @@ name = "ciso-intel"
 version = "1.0.0"
 description = "CISO open-source threat intelligence briefs from Grok 4.7. Confirmed findings only."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
   "xai-sdk>=1.20.0",

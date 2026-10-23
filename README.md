@@ -147,3 +147,7 @@ The tests do not call the API and do not ship a sample threat report. A sample o
 - Knowledge inside the model stops at May 2026. If the tools do not retrieve it, it is not in the brief.
 - Sites that block the fetcher, and scanned PDFs, drop the candidate. There is no OCR step.
 - This is not a scan of your environment.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
