@@ -1,0 +1,8 @@
+[
+  {
+    "server_url": "https://mcp.example.com/mcp",
+    "server_label": "example",
+    "server_description": "Replace with an HTTPS MCP server you trust.",
+    "allowed_tool_names": []
+  }
+]
