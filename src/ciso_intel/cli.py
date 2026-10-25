@@ -218,7 +218,7 @@ def _plan(args, settings, stdout: Console, console: Console) -> int:
         image_generation=options.image_generation,
     )
     stdout.print(f"ciso-intel {__version__}")
-    stdout.print(f"Model {settings.model}  \u00b7  reasoning {settings.effort}  \u00b7  host {settings.api_host}")
+    stdout.print(f"Model {settings.model}  ·  reasoning {settings.effort}  ·  host {settings.api_host}")
     stdout.print(f"Window {window.label}")
     stdout.print("Ecosystems: " + (", ".join(options.ecosystems) if options.ecosystems else "all"))
     stdout.print("Enabled tools:")
@@ -226,7 +226,7 @@ def _plan(args, settings, stdout: Console, console: Console) -> int:
         stdout.print(f"  {item['name']}  {_public_tool(item)}")
     stdout.print("Withheld:")
     for item in plan.withheld:
-        stdout.print(f"  {item['name']} \u2014 {item['reason']}")
+        stdout.print(f"  {item['name']} — {item['reason']}")
     stdout.print("Categories: " + ", ".join(key for key, _label in CATEGORIES))
     stdout.print(
         f"Collection returns every qualifying item in the window, then keeps searching until a pass "
@@ -262,7 +262,7 @@ def _public_tool(item: dict) -> str:
     if item["name"] == "mcp":
         hosts = ", ".join(server.get("server_url_host", "") for server in item.get("servers", []))
         parts.append(f"hosts {hosts}")
-    return " \u00b7 ".join(parts)
+    return " · ".join(parts)
 
 
 def _doctor(settings, stdout: Console, console: Console) -> int:
@@ -316,7 +316,7 @@ def _run(args, settings, stdout: Console, console: Console) -> int:
     stdout.print("")
     stdout.print(f"Report {result.report_id}")
     stdout.print(f"Posture {result.posture}")
-    stdout.print(f"Confirmed {result.finding_count}  \u00b7  excluded {result.omitted_count}")
+    stdout.print(f"Confirmed {result.finding_count}  ·  excluded {result.omitted_count}")
     stdout.print(f"PDF  {result.pdf_path.resolve()}")
     stdout.print(f"JSON {result.json_path.resolve()}")
     stdout.print("Attach report.json to a Grok Bot. The bot should follow grok_bot.instructions and brief only from grok_bot.facts_from_sources.")
