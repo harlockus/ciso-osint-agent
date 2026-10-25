@@ -15,7 +15,7 @@ from ciso_intel import __version__
 from ciso_intel.agent import IntelError
 from ciso_intel.config import ConfigError, load_settings, redact, require_key
 from ciso_intel.pdf import render_pdf
-from ciso_intel.pipeline import MAX_COLLECTION_PASSES, RunOptions, execute
+from ciso_intel.pipeline import DEFAULT_ECOSYSTEMS, MAX_COLLECTION_PASSES, RunOptions, execute
 from ciso_intel.prompts import CATEGORIES
 from ciso_intel.report import BOT_INSTRUCTIONS
 from ciso_intel.schema import Brief
@@ -109,8 +109,8 @@ def _add_run_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out", type=Path, default=Path("reports"))
     parser.add_argument(
         "--ecosystems",
-        default="npm,pypi,maven,nuget,rubygems,crates,go,packagist",
-        help="Comma-separated registries, or 'all'.",
+        default=",".join(DEFAULT_ECOSYSTEMS),
+        help="Comma-separated registries, or 'all'. Includes huggingface by default.",
     )
     parser.add_argument("--no-gap-fill", action="store_true")
     parser.add_argument("--no-video", action="store_true", help="Do not enable X video understanding.")
@@ -218,7 +218,7 @@ def _plan(args, settings, stdout: Console, console: Console) -> int:
         image_generation=options.image_generation,
     )
     stdout.print(f"ciso-intel {__version__}")
-    stdout.print(f"Model {settings.model}  ·  reasoning {settings.effort}  ·  host {settings.api_host}")
+    stdout.print(f"Model {settings.model}  \u00b7  reasoning {settings.effort}  \u00b7  host {settings.api_host}")
     stdout.print(f"Window {window.label}")
     stdout.print("Ecosystems: " + (", ".join(options.ecosystems) if options.ecosystems else "all"))
     stdout.print("Enabled tools:")
@@ -226,7 +226,7 @@ def _plan(args, settings, stdout: Console, console: Console) -> int:
         stdout.print(f"  {item['name']}  {_public_tool(item)}")
     stdout.print("Withheld:")
     for item in plan.withheld:
-        stdout.print(f"  {item['name']} — {item['reason']}")
+        stdout.print(f"  {item['name']} \u2014 {item['reason']}")
     stdout.print("Categories: " + ", ".join(key for key, _label in CATEGORIES))
     stdout.print(
         f"Collection returns every qualifying item in the window, then keeps searching until a pass "
@@ -238,7 +238,7 @@ def _plan(args, settings, stdout: Console, console: Console) -> int:
     )
     stdout.print(
         "A finding is confirmed only when a tool cited the URL, this program fetched the page, "
-        "a verbatim excerpt was present, and the package, identifier, or author was on that page."
+        "a verbatim excerpt was present, and the model id, package, identifier, or author was on that page."
     )
     stdout.print("X search and grok-4.7 at xhigh are billed. Confirm current prices at https://docs.x.ai/developers/models before a long window.")
     if settings.key_ready:
@@ -262,7 +262,7 @@ def _public_tool(item: dict) -> str:
     if item["name"] == "mcp":
         hosts = ", ".join(server.get("server_url_host", "") for server in item.get("servers", []))
         parts.append(f"hosts {hosts}")
-    return " · ".join(parts)
+    return " \u00b7 ".join(parts)
 
 
 def _doctor(settings, stdout: Console, console: Console) -> int:
@@ -316,7 +316,7 @@ def _run(args, settings, stdout: Console, console: Console) -> int:
     stdout.print("")
     stdout.print(f"Report {result.report_id}")
     stdout.print(f"Posture {result.posture}")
-    stdout.print(f"Confirmed {result.finding_count}  ·  excluded {result.omitted_count}")
+    stdout.print(f"Confirmed {result.finding_count}  \u00b7  excluded {result.omitted_count}")
     stdout.print(f"PDF  {result.pdf_path.resolve()}")
     stdout.print(f"JSON {result.json_path.resolve()}")
     stdout.print("Attach report.json to a Grok Bot. The bot should follow grok_bot.instructions and brief only from grok_bot.facts_from_sources.")
