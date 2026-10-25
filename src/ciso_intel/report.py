@@ -37,7 +37,10 @@ BOT_INSTRUCTIONS = (
     "Inferences are paraphrases; if one disagrees with its quotation, drop the inference. "
     "actions_for_approval are not done. actions_completed only describes this research run. "
     "If a question is not answered by the facts, say the brief does not establish that. "
-    "Do not add packages, vulnerabilities, authors, licenses, dates, download counts, or victims from memory. "
+    "Do not add packages, model ids, vulnerabilities, authors, licenses, dates, download counts, or victims from memory. "
+    "A malicious_model fact is a Hugging Face model the source calls malicious, backdoored, or carrying a payload. "
+    "A vulnerable_model fact is a model the source documents as vulnerable, and is not malware unless the quotation says so. "
+    "A similar name is not a typosquat and is not a malicious model. "
     "Do not use audit.omitted. Do not describe an empty fact list as an all-clear."
 )
 
@@ -48,6 +51,8 @@ CATEGORY_SHORT = {
     "malicious_author": "Authors",
     "license_risk": "License risk",
     "typosquat": "Typosquats",
+    "malicious_model": "Malicious models",
+    "vulnerable_model": "Vulnerable models",
 }
 CATEGORY_NOUNS = {
     "malicious_code": ("malicious package", "malicious packages"),
@@ -55,6 +60,8 @@ CATEGORY_NOUNS = {
     "malicious_author": ("author", "authors"),
     "license_risk": ("license event", "license events"),
     "typosquat": ("typosquat", "typosquats"),
+    "malicious_model": ("malicious model", "malicious models"),
+    "vulnerable_model": ("vulnerable model", "vulnerable models"),
 }
 POSTURE_LABELS = {
     "severe": "Severe",
@@ -164,7 +171,7 @@ def build_brief(
         "executive_narrative_source": narrative_source,
         "evidence_standard": (
             "A finding is confirmed only when a tool in this run cited the URL, this program fetched the page, "
-            "a verbatim excerpt was present, and the package, identifier, or author was on that page."
+            "a verbatim excerpt was present, and the model id, package, identifier, or author was on that page."
         ),
     }
     if collection:
@@ -223,7 +230,7 @@ def _deterministic_narrative(window: Window, findings: list[FindingRecord], omit
     if not findings:
         return (
             f"From {window.label}, Grok searched the open web and X, and this program re-fetched every cited page. "
-            "A finding is briefed only when a verbatim passage on that page contains the package, identifier, or author. "
+            "A finding is briefed only when a verbatim passage on that page contains the model id, package, identifier, or author. "
             f"None did. {excluded} "
             "Absence from this brief is not a statement that your dependency tree is clean. This run cannot see your lockfiles."
         )
