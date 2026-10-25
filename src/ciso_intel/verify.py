@@ -50,6 +50,12 @@ CATEGORY_ALIASES = {
     "typosquat": "typosquat",
     "typosquatting": "typosquat",
     "typosquats": "typosquat",
+    "malicious_model": "malicious_model",
+    "malicious_models": "malicious_model",
+    "backdoored_model": "malicious_model",
+    "backdoored_models": "malicious_model",
+    "vulnerable_model": "vulnerable_model",
+    "vulnerable_models": "vulnerable_model",
 }
 
 REASON_RANK = {
