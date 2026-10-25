@@ -43,6 +43,29 @@ def test_prompts_ask_for_every_qualifying_item_and_keep_the_evidence_rules():
     assert "40 to 320 characters" in system
     assert "Do not dump unrelated CVEs" in system
     assert "An empty findings list is a correct result." in system
+    assert "malicious_model" in research
+    assert "vulnerable_model" in research
+    assert "malicious_model" in follow
+    assert "vulnerable_model" in follow
+    assert "malicious_model" in system
+    assert "vulnerable_model" in system
+    assert "huggingface.co" in system
+    assert "org/name" in system
+    assert "similar name" in system.lower()
+    assert "not a malicious model" in system
+    hf = research_prompt(window, ["npm", "huggingface"])
+    assert "huggingface.co" in hf
+    assert "Protect AI" in hf
+    assert "JFrog" in hf
+    assert "HiddenLayer" in hf
+    assert "malicious_model" in hf
+    assert "vulnerable_model" in hf
+    follow_hf = continuation_prompt(window, ["huggingface"], ["acme/poison-bert"])
+    assert "huggingface.co" in follow_hf
+    assert "acme/poison-bert" in follow_hf
+    assert "malicious_model" in follow_hf
+    assert "vulnerable_model" in follow_hf
+    assert "huggingface" in RunOptions().ecosystems
     assert RunOptions().max_passes == MAX_COLLECTION_PASSES == 4
     assert not hasattr(RunOptions(), "finding_limit")
 
@@ -332,6 +355,9 @@ def test_plan_does_not_ask_for_a_window(monkeypatch, tmp_path, capsys):
     out = capsys.readouterr().out
     assert "9 October 2026 through 23 October 2026" in out
     assert "4 passes" in out
+    assert "malicious_model" in out
+    assert "vulnerable_model" in out
+    assert "huggingface" in out
 
 
 class _Frozen(datetime):
