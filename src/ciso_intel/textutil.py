@@ -16,6 +16,10 @@ PRIMARY_HOSTS = (
     "github.com",
     "githubusercontent.com",
     "github.blog",
+    "huggingface.co",
+    "protectai.com",
+    "jfrog.com",
+    "hiddenlayer.com",
     "pypi.org",
     "python.org",
     "npmjs.com",
@@ -198,10 +202,15 @@ def classify_url(url: str) -> str:
 
 
 def needle_in(needle: str, page_norm: str) -> bool:
+    """True when the whole token is on the page.
+
+    Slash-separated ids (``org/name``, ``@scope/pkg``) count when their length is at least 4.
+    A slash is part of the token, so a shorter lookalike on either side of the slash does not match.
+    """
     token = norm(needle)
     if len(token) < 4:
         return False
-    return re.search(rf"(?<![a-z0-9_@./-]){re.escape(token)}(?![a-z0-9_-])", page_norm) is not None
+    return re.search(rf"(?<![a-z0-9_@./-]){re.escape(token)}(?![a-z0-9_/-])", page_norm) is not None
 
 
 def excerpt_in_page(excerpt: str, page: str) -> bool:
