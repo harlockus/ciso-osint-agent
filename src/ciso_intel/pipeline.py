@@ -29,14 +29,24 @@ from ciso_intel.window import DETROIT, Window, WindowChoiceError, make_window, w
 # that never comes back empty. The report audit records it when the stop is this ceiling.
 MAX_COLLECTION_PASSES = 4
 
+DEFAULT_ECOSYSTEMS = [
+    "npm",
+    "pypi",
+    "maven",
+    "nuget",
+    "rubygems",
+    "crates",
+    "go",
+    "packagist",
+    "huggingface",
+]
+
 
 @dataclass
 class RunOptions:
     days: int = 14
     out_dir: Path = Path("reports")
-    ecosystems: list[str] = field(
-        default_factory=lambda: ["npm", "pypi", "maven", "nuget", "rubygems", "crates", "go", "packagist"]
-    )
+    ecosystems: list[str] = field(default_factory=lambda: list(DEFAULT_ECOSYSTEMS))
     # When false, stop after the first pass even if it confirmed new findings.
     gap_fill: bool = True
     image_understanding: bool = True
