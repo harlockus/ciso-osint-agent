@@ -14,7 +14,7 @@ An empty brief is a real result. It is not an all-clear, and this program cannot
 1. Grok cited the URL from a tool in that run (web search, X search, code execution, or a collection or MCP server you configured).
 2. This program fetched the URL itself. Private, loopback, and link-local addresses are refused.
 3. The excerpt is a verbatim passage on that page, at least 40 characters.
-4. The package, identifier, or author is on that page.
+4. The model id, package, identifier, or author is on that page.
 5. A stated date has to fall inside the window. Undated pages can stay, at lower confidence.
 
 Severity is capped from the words on the page. A social post that is not backed by a primary advisory site cannot be briefed as critical. Paraphrases and actions that introduce a new identifier, URL, or figure are dropped. The quotation stays.
@@ -99,7 +99,7 @@ ciso-intel run --no-gap-fill
 ciso-intel run --no-video --no-image-tools
 ```
 
-Collection is exhaustive for the five categories below. The research prompt does not ask for a top-N list. After each verified batch, another pass searches every category again and excludes packages, identifiers, and titles that already confirmed. It does not stop because a category already has one hit. A pass that confirms nothing new stops the run. A safety ceiling of 4 passes also stops the run. The report audit records `collection_passes`, `collection_pass_ceiling`, `collection_stop`, `collection_truncated`, and `collection_note`, so a run that hits the ceiling is visible in the JSON and in the PDF method section. `--no-gap-fill` keeps a single pass.
+Collection is exhaustive for the seven categories below. The research prompt does not ask for a top-N list. After each verified batch, another pass searches every category again and excludes packages, model ids, identifiers, and titles that already confirmed. It does not stop because a category already has one hit. A pass that confirms nothing new stops the run. A safety ceiling of 4 passes also stops the run. The report audit records `collection_passes`, `collection_pass_ceiling`, `collection_stop`, `collection_truncated`, and `collection_note`, so a run that hits the ceiling is visible in the JSON and in the PDF method section. `--no-gap-fill` keeps a single pass.
 
 Other commands:
 
@@ -130,6 +130,10 @@ The object matches the split SpaceXSI describes for consequential bot work: fact
 - Authors a source attributes to malicious packages, an account takeover, or a typosquat campaign
 - License risk: a documented license change, protestware, or non-standard obligation
 - Typosquats a source explicitly names
+- Malicious Hugging Face models a source explicitly calls malicious, backdoored, or carrying a payload
+- Vulnerable Hugging Face models a source documents as vulnerable, without calling them malware unless the source does
+
+The brief includes those malicious and vulnerable Hugging Face models under the same quotation rule as packages. A model id looks like `org/name`. It is confirmed only when a tool cited the URL, this program fetched the page, a verbatim excerpt of at least 40 characters is on that page, and that model id is on the page. A similar name alone is not a typosquat and is not a malicious model. `huggingface` is in the default ecosystem list with npm, PyPI, and the other public registries.
 
 License findings use the source's description. The brief does not grade a license as evil.
 
