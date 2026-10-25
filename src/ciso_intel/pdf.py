@@ -502,3 +502,4 @@ def pretty_stamp(value: str) -> str:
         moment = moment.replace(tzinfo=timezone.utc)
     moment = moment.astimezone(DETROIT)
     return f"{moment.day} {moment.strftime('%B')} {moment.year}, {moment.strftime('%H:%M')} ET"
+
