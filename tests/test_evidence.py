@@ -13,6 +13,8 @@ from ciso_intel.schema import EvidenceIn, ExecutiveDraft, FindingIn, ResearchPac
 from ciso_intel.textutil import (
     classify_url,
     excerpt_in_page,
+    needle_in,
+    norm,
     prose_supported,
     stricter_severity,
     url_key,
@@ -52,6 +54,18 @@ def test_excerpt_and_prose_gates():
     assert not prose_supported("See CVE-2099-99999 for the campaign.", corpus)
     assert not prose_supported("About 40000 downloads.", corpus)
     assert stricter_severity("critical", "high") == "high"
+
+
+def test_slash_separated_ids_match_like_scoped_packages():
+    page = norm("Review acme/poison-bert next to @scope/pkg and the short id ab/cd.")
+    assert needle_in("acme/poison-bert", page)
+    assert needle_in("@scope/pkg", page)
+    assert needle_in("ab/cd", page)
+    assert needle_in("org/name", norm("The model id org/name is the subject."))
+    assert not needle_in("a/b", norm("see a/b now"))
+    assert not needle_in("poison-bert", page)
+    assert not needle_in("acme", page)
+    assert not needle_in("scope/pkg", page)
 
 
 def test_verify_keeps_quotation_and_drops_uncited():
@@ -99,6 +113,94 @@ def test_verify_keeps_quotation_and_drops_uncited():
     assert confirmed[0].severity_note
     assert any(item.reason == "url_not_in_tool_results" for item in omitted)
     assert any(item.title == "Totally Fake Worm Package" for item in omitted)
+
+
+def test_huggingface_model_id_survives_only_when_cited_on_the_page():
+    window = make_window(14, NOW)
+    malicious_url = "https://huggingface.co/blog/acme-poison-bert"
+    malicious_excerpt = "The model acme/poison-bert is malicious and executes a pickle payload when the weights are loaded."
+    malicious_page = malicious_excerpt + " Published 2026-10-20. Remove acme/poison-bert from inference hosts."
+    vulnerable_url = "https://jfrog.com/blog/lab-unsafe-loader"
+    vulnerable_excerpt = "The model lab/unsafe-loader is vulnerable to unsafe deserialization when torch.load reads the checkpoint."
+    vulnerable_page = vulnerable_excerpt + " Published 2026-10-21. Track GHSA-1234-5678-90ab for lab/unsafe-loader."
+    pages = {malicious_url: malicious_page, vulnerable_url: vulnerable_page}
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        return FetchResult(url, url, 200, pages[url], None, "2026-10-23T19:30:00+00:00", "abc")
+
+    malicious = FindingIn(
+        category="malicious_model",
+        title="acme/poison-bert carries a pickle payload",
+        severity="high",
+        summary="acme/poison-bert executes a pickle payload when the weights are loaded.",
+        ecosystem="huggingface",
+        packages=["acme/poison-bert"],
+        published="2026-10-20",
+        why_it_matters="Loading acme/poison-bert runs a pickle payload.",
+        actions=["Remove acme/poison-bert from inference hosts."],
+        evidence=[
+            EvidenceIn(
+                url=malicious_url,
+                title="HF security note",
+                publisher="Hugging Face",
+                published="2026-10-20",
+                excerpt=malicious_excerpt,
+            )
+        ],
+    )
+    vulnerable = FindingIn(
+        category="vulnerable model",
+        title="lab/unsafe-loader unsafe deserialization",
+        severity="high",
+        summary="lab/unsafe-loader is vulnerable to unsafe deserialization.",
+        ecosystem="huggingface",
+        packages=["lab/unsafe-loader"],
+        identifiers=["GHSA-1234-5678-90ab"],
+        published="2026-10-21",
+        actions=["Track GHSA-1234-5678-90ab for lab/unsafe-loader."],
+        evidence=[
+            EvidenceIn(
+                url=vulnerable_url,
+                title="JFrog research",
+                publisher="JFrog",
+                published="2026-10-21",
+                excerpt=vulnerable_excerpt,
+            )
+        ],
+    )
+    missing = FindingIn(
+        category="malicious_model",
+        title="ghost/model was never cited",
+        severity="critical",
+        packages=["ghost/model"],
+        evidence=[
+            EvidenceIn(
+                url="https://example.com/not-in-tools",
+                excerpt="The model ghost/model is malicious and this quotation is long enough to check.",
+            )
+        ],
+    )
+    similar = FindingIn(
+        category="malicious_model",
+        title="poison-bert",
+        severity="high",
+        packages=["poison-bert"],
+        evidence=[EvidenceIn(url=malicious_url, excerpt=malicious_excerpt)],
+    )
+    confirmed, omitted = verify_findings(
+        [malicious, vulnerable, missing, similar],
+        [malicious_url, vulnerable_url],
+        window,
+        fetch,
+    )
+    assert calls == [malicious_url, vulnerable_url]
+    assert [item.category for item in confirmed] == ["malicious_model", "vulnerable_model"]
+    assert [item.packages for item in confirmed] == [["acme/poison-bert"], ["lab/unsafe-loader"]]
+    assert confirmed[0].evidence[0].excerpt == malicious_excerpt
+    assert {item.reason for item in omitted} == {"url_not_in_tool_results", "identifier_not_on_page"}
+    assert any(item.title == "ghost/model was never cited" for item in omitted)
 
 
 def test_verify_drops_when_quotation_is_not_on_the_page():
@@ -281,6 +383,8 @@ def test_pipeline_briefs_only_the_verified_quotation(tmp_path):
     assert "CVE-2099-99999" not in text
     assert SECRET not in text
     assert "A finding is confirmed only when" in text
+    assert "Malicious models" in folded
+    assert "Vulnerable models" in folded
     assert "safety ceiling is 4" in folded
     assert result.json_path.stat().st_mode & 0o077 == 0
     assert result.pdf_path.stat().st_mode & 0o077 == 0
