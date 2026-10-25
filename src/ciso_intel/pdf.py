@@ -53,14 +53,14 @@ SEVERITY_COLOR = {
 REASON_LABELS = {
     "url_not_in_tool_results": "URL was not in the tool results",
     "excerpt_not_on_page": "Quotation was not on the retrieved page",
-    "identifier_not_on_page": "Package, identifier, or author was not on the page",
+    "identifier_not_on_page": "Model id, package, identifier, or author was not on the page",
     "excerpt_too_short": "Quotation was too short to check",
     "not_refetched": "Page could not be re-fetched",
     "outside_window": "Dates fell outside the window",
     "duplicate": "Duplicate of a confirmed item",
-    "no_specific_identifier": "No specific package, identifier, or author",
+    "no_specific_identifier": "No specific model id, package, identifier, or author",
     "no_evidence": "No evidence URL",
-    "unknown_category": "Category was not one of the five briefed here",
+    "unknown_category": "Category was not one of the seven briefed here",
     "blocked_non_public": "URL was not a public web address",
     "dns_failed": "Host did not resolve",
     "unsupported_content": "Page was not readable text or PDF",
@@ -201,7 +201,7 @@ def body_story(brief: Brief, styles: dict, fonts: FontSet, json_sha256: str) -> 
     story.append(Spacer(1, 8))
     story.append(Paragraph(escape(f"Ecosystems in scope: {', '.join(brief.ecosystems) or 'not limited'}."), styles["muted"]))
     story.append(Spacer(1, 12))
-    story.append(stat_table(brief, styles))
+    story.extend(stat_blocks(brief, styles))
     story.append(Spacer(1, 10))
     story.append(
         Paragraph(
@@ -219,7 +219,7 @@ def body_story(brief: Brief, styles: dict, fonts: FontSet, json_sha256: str) -> 
     elif brief.findings:
         story.append(
             Paragraph(
-                "No source-bound action was extracted. The quotations name the packages and identifiers to hand to their owners.",
+                "No source-bound action was extracted. The quotations name the packages, model ids, and identifiers to hand to their owners.",
                 styles["body"],
             )
         )
@@ -242,13 +242,13 @@ def body_story(brief: Brief, styles: dict, fonts: FontSet, json_sha256: str) -> 
             story.append(KeepTogether([finding_card(finding, styles)]))
     story.append(CondPageBreak(200))
     story.append(Spacer(1, 8))
-    story.append(Paragraph("07", styles["kicker"]))
+    story.append(Paragraph(f"{len(CATEGORIES) + 2:02d}", styles["kicker"]))
     story.append(Paragraph("Method and limits", styles["h2"]))
     story.extend(method_blocks(brief, styles))
     return story
 
 
-def stat_table(brief: Brief, styles: dict) -> Table:
+def stat_blocks(brief: Brief, styles: dict) -> list:
     cells = []
     for key, _label in CATEGORIES:
         count = sum(1 for item in brief.findings if item.category == key)
@@ -258,26 +258,33 @@ def stat_table(brief: Brief, styles: dict) -> Table:
                 Paragraph(escape(CATEGORY_SHORT[key]), styles["label"]),
             ]
         )
-    table = Table([[Stack(cell) for cell in cells]], colWidths=[100, 100, 100, 100, 100])
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), PAPER),
-                ("BOX", (0, 0), (-1, -1), 0.4, RULE),
-                ("INNERGRID", (0, 0), (-1, -1), 0.3, RULE),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ]
-        )
+    per_row = 4
+    col_width = 125
+    blocks: list = []
+    style = TableStyle(
+        [
+            ("BACKGROUND", (0, 0), (-1, -1), PAPER),
+            ("BOX", (0, 0), (-1, -1), 0.4, RULE),
+            ("INNERGRID", (0, 0), (-1, -1), 0.3, RULE),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]
     )
-    return table
+    for start in range(0, len(cells), per_row):
+        row = cells[start : start + per_row]
+        table = Table([[Stack(cell) for cell in row]], colWidths=[col_width] * len(row))
+        table.setStyle(style)
+        if blocks:
+            blocks.append(Spacer(1, 6))
+        blocks.append(table)
+    return blocks
 
 
 def finding_card(finding: FindingRecord, styles: dict) -> Table:
-    meta = "  ·  ".join(
+    meta = "  \u00b7  ".join(
         [
             finding.id,
             finding.severity.upper(),
@@ -298,15 +305,15 @@ def finding_card(finding: FindingRecord, styles: dict) -> Table:
         blocks.append(Spacer(1, 3))
         blocks.append(
             Paragraph(
-                f"{escape(source)} · {escape(evidence.host or 'host not stated')}"
-                + (f" · {escape(evidence.published)}" if evidence.published else ""),
+                f"{escape(source)} \u00b7 {escape(evidence.host or 'host not stated')}"
+                + (f" \u00b7 {escape(evidence.published)}" if evidence.published else ""),
                 styles["small"],
             )
         )
         blocks.append(link_paragraph(evidence.url, styles["link"]))
         blocks.append(
             Paragraph(
-                f"Retrieved {escape(pretty_stamp(evidence.retrieved_at))} · HTTP {evidence.http_status} · quotation found on the page.",
+                f"Retrieved {escape(pretty_stamp(evidence.retrieved_at))} \u00b7 HTTP {evidence.http_status} \u00b7 quotation found on the page.",
                 styles["muted"],
             )
         )
@@ -322,7 +329,7 @@ def finding_card(finding: FindingRecord, styles: dict) -> Table:
         blocks.append(Spacer(1, 4))
         blocks.append(Paragraph("ACTIONS TIED TO THE SOURCE", styles["label"]))
         for action in finding.actions:
-            blocks.append(Paragraph(f"–  {escape(action)}", styles["small"]))
+            blocks.append(Paragraph(f"\u2013  {escape(action)}", styles["small"]))
     table = Table([[Stack(blocks)]], colWidths=[500])
     accent: Color = SEVERITY_COLOR.get(finding.severity, NAVY)
     table.setStyle(
@@ -345,7 +352,7 @@ def finding_card(finding: FindingRecord, styles: dict) -> Table:
 def method_blocks(brief: Brief, styles: dict) -> list:
     model = brief.model
     enabled = ", ".join(_tool_label(item["name"]) for item in brief.tools_enabled) or "none"
-    withheld = [f"{_tool_label(item['name'])} — {item['reason']}" for item in brief.tools_withheld]
+    withheld = [f"{_tool_label(item['name'])} \u2014 {item['reason']}" for item in brief.tools_withheld]
     counts = brief.audit.get("omitted_by_reason", {})
     lines = [
         brief.audit["evidence_standard"],
@@ -373,7 +380,7 @@ def method_blocks(brief: Brief, styles: dict) -> list:
     usage = brief.audit.get("token_usage") or {}
     if usage:
         lines.append(
-            "Tokens — "
+            "Tokens \u2014 "
             + ", ".join(f"{key.replace('_', ' ')} {value}" for key, value in usage.items() if value)
             + "."
         )
@@ -421,7 +428,7 @@ def draw_cover(canvas, brief: Brief, fonts: FontSet) -> None:
     canvas.setFont(fonts.serif_italic, 34)
     canvas.drawString(56, PAGE_H - 184, "threat intelligence")
     subtitle = Paragraph(
-        "Malicious code, vulnerabilities, authors, license risk, and typosquatting in public open-source registries.",
+        "Malicious code, vulnerabilities, authors, license risk, typosquatting, and malicious or vulnerable Hugging Face models.",
         ParagraphStyle("cover-sub", fontName=fonts.body, fontSize=11, leading=15, textColor=HexColor("#E4D8C4")),
     )
     width, height = subtitle.wrap(PAGE_W - 112, 80)
@@ -433,7 +440,7 @@ def draw_cover(canvas, brief: Brief, fonts: FontSet) -> None:
     rows = [
         ("WINDOW", brief.window["label"]),
         ("PREPARED", pretty_stamp(brief.generated_at)),
-        ("MODEL", f"{brief.model['name']}  ·  reasoning {brief.model['reasoning_effort']}"),
+        ("MODEL", f"{brief.model['name']}  \u00b7  reasoning {brief.model['reasoning_effort']}"),
         ("POSTURE", brief.posture_label),
         ("REPORT", brief.report_id),
     ]
@@ -472,7 +479,7 @@ def draw_body_chrome(canvas, doc, brief: Brief, fonts: FontSet) -> None:
     canvas.rect(0, PAGE_H - 36, 8, 36, fill=1, stroke=0)
     canvas.setFillColor(HexColor("#F7F4EE"))
     canvas.setFont(fonts.semibold, 8)
-    canvas.drawString(46, PAGE_H - 22, "CISO   ·   OPEN-SOURCE THREAT INTELLIGENCE")
+    canvas.drawString(46, PAGE_H - 22, "CISO   \u00b7   OPEN-SOURCE THREAT INTELLIGENCE")
     canvas.setFont(fonts.body, 8)
     canvas.drawRightString(PAGE_W - 40, PAGE_H - 22, "INTERNAL")
     canvas.setFillColor(NAVY)
@@ -495,4 +502,3 @@ def pretty_stamp(value: str) -> str:
         moment = moment.replace(tzinfo=timezone.utc)
     moment = moment.astimezone(DETROIT)
     return f"{moment.day} {moment.strftime('%B')} {moment.year}, {moment.strftime('%H:%M')} ET"
-
